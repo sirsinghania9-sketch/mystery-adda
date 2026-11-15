@@ -163,7 +163,7 @@ h2{font-family:var(--font-display);font-weight:400;font-size:clamp(30px,4.4vw,48
 @media (max-width:900px){.maker{grid-template-columns:1fr}}
 .form{display:grid;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
 .form label{display:grid;gap:6px;font-size:14px;font-weight:600;color:var(--muted)}
-.form input,.form textarea{font:inherit;color:var(--ink);background:var(--desk);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.form input,.form textarea{width:100%;min-width:0;font:inherit;color:var(--ink);background:var(--desk);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
 .form textarea{resize:vertical;min-height:72px;font-family:var(--font-type)}
 .form .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .preview img{width:100%;max-width:540px;border-radius:14px;box-shadow:0 24px 50px rgba(0,0,0,.5);display:block}
@@ -547,9 +547,6 @@ function drawCard(d){
   // paper lines
   x.strokeStyle = "rgba(107,90,64,.18)"; x.lineWidth = 2;
   for (let ly = py + 120; ly < py + ph - 30; ly += 52){ x.beginPath(); x.moveTo(px + 40, ly); x.lineTo(px + pw - 40, ly); x.stroke(); }
-  // paperclip
-  x.strokeStyle = "#9aa3c4"; x.lineWidth = 7; x.lineCap = "round";
-  x.beginPath(); x.moveTo(px + pw - 120, py - 30); x.lineTo(px + pw - 120, py + 70); x.arc(px + pw - 102, py + 70, 18, Math.PI, 0, true); x.lineTo(px + pw - 84, py - 14); x.stroke();
 
   // agent label + handle
   x.fillStyle = "#6b5a40"; x.font = `26px ${TYPE}`; x.fillText("AGENT", px + 50, py + 78);
@@ -574,7 +571,7 @@ function drawCard(d){
   x.restore();
 
   // SOLVED stamp
-  x.save(); x.translate(800, 610); x.rotate(0.2); x.globalAlpha = 0.9;
+  x.save(); x.translate(820, 478); x.rotate(0.16); x.globalAlpha = 0.9;
   x.strokeStyle = "#ff3b4e"; x.lineWidth = 8; rr(x, -170, -62, 340, 124, 14); x.stroke();
   x.lineWidth = 3; rr(x, -156, -48, 312, 96, 8); x.stroke();
   x.fillStyle = "#ff3b4e"; x.font = `62px ${DISP}`; x.textAlign = "center"; x.fillText("SOLVED", 0, 22);
