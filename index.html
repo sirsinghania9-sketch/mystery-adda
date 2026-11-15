@@ -120,6 +120,18 @@ h2{font-family:var(--font-display);font-weight:400;font-size:clamp(30px,4.4vw,48
 .smsg.ok{color:#1d7a45}.smsg.err{color:#c2263a}
 .solve .btn[disabled]{opacity:.6;cursor:wait}
 
+.teaser{font-size:16px;line-height:1.65;margin:0 0 10px}
+.teaser.blur{filter:blur(5px);user-select:none;margin:0}
+.story{border-bottom:2px dashed #cbb98f;padding-bottom:20px}
+.story-tag{font-family:var(--font-display);font-size:13px;color:#c2263a;letter-spacing:.06em}
+.story h3{font-family:var(--font-display);font-weight:400;font-size:26px;margin:6px 0 10px;color:#1d1710}
+.story p{margin:0;font-size:18px;line-height:1.7}
+.adm{display:grid;gap:16px;max-width:520px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px}
+.adm label{display:grid;gap:6px;font-weight:600;color:var(--muted)}
+.adm input,.adm select{width:100%;font:inherit;color:var(--ink);background:var(--desk);border:1px solid var(--line);border-radius:8px;padding:11px 12px}
+.adm-btns{display:flex;flex-wrap:wrap;gap:14px}
+.adm .smsg.ok{color:#7ee0a1}.adm .smsg.err{color:var(--siren)}
+
 /* steps */
 .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
 @media (max-width:820px){.steps{grid-template-columns:1fr}}
@@ -231,13 +243,8 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
       <div class="file" aria-label="Case file preview">
         <h3 id="fileTitle">Gayab Samose ka Raaz</h3>
         <p class="meta">5 sawaal · 1 tie-breaker · deadline raat 10 baje</p>
-        <ol>
-          <li>Main jitna badhta hoon, utna kam dikhta hoon. Main kaun?</li>
-          <li class="blur">Sheru bhai ke paas 17 samose the, kitne bache?</li>
-          <li class="blur">2, 6, 12, 20, 30, agla number?</li>
-          <li class="blur">Aaj se 2 din pehle Sunday tha, toh...</li>
-          <li class="blur">LEHPAI ko seedha karo</li>
-        </ol>
+        <p class="teaser" id="teaser"></p>
+        <p class="teaser blur" aria-hidden="true">Suspects ke bayaan, ek chhupa hua clue aur ek jhooth. Case file kholo aur pakdo kaun hai asli chor.</p>
         <span class="stamp">TOP SECRET</span>
         <div class="prize"><b id="prizeAmt">₹200</b><small>INAAM</small></div>
       </div>
@@ -250,6 +257,7 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
       <h2>Sawaal padho, answer bhejo</h2>
       <p class="lead">Deadline raat 10 baje. Ek account se ek hi entry. Answers comments mein mat likhna, warna disqualify.</p>
       <form class="solve" id="solveForm" novalidate>
+        <div class="story"><span class="story-tag">CASE FILE</span><h3 id="storyTitle"></h3><p id="storyText"></p></div>
         <label class="hfield" for="sHandle">Tumhara Instagram handle<input id="sHandle" placeholder="@tumhara.handle" autocomplete="off" required></label>
         <ol class="qlist" id="qList"></ol>
         <label class="qline" for="sLine"><span id="tbText">Tie-breaker</span><textarea id="sLine" maxlength="140" placeholder="Apna best one-liner yahan..."></textarea></label>
@@ -353,6 +361,22 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
       </ol>
     </div>
   </section>
+  <section id="admin" hidden>
+    <div class="wrap">
+      <p class="kicker">// ADMIN · SIRF TUMHARE LIYE</p>
+      <h2>Case control</h2>
+      <p class="lead">Abhi live: <strong id="admLive">...</strong>. Case badlo, 2 se 5 minute mein sabke liye update ho jayega.</p>
+      <form class="adm" id="admForm">
+        <label for="admCode">Secret code<input id="admCode" type="password" autocomplete="off" placeholder="SHERU-XXXXXX"></label>
+        <label for="admPick">Case chuno<select id="admPick"></select></label>
+        <div class="adm-btns">
+          <button class="btn" type="button" id="admNext">Agla case live karo</button>
+          <button class="btn ghost" type="submit">Chuna hua case live karo</button>
+        </div>
+        <p class="smsg" id="admMsg" role="status"></p>
+      </form>
+    </div>
+  </section>
 </main>
 
 <footer>
@@ -362,23 +386,21 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
   </div>
 </footer>
 
+<script src="cases.js"></script>
 <script>
 /* ====== EDIT THIS BLOCK ONLY ====== */
 const CONFIG = {
   brand: "MYSTERY ADDA",
   handle: "@mysteryadda",            // tumhara Instagram handle
   keyword: "MYSTERY",
-  caseNo: "007",
-  caseTitle: "Gayab Samose ka Raaz",
+  startDate: "2026-11-15",             // admin ne kuch set nahi kiya toh is date se roz agla case
+  control: {                           // admin button yahan likhta hai (secret)
+    csv: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYHcVz0cx9hU-2xd-JI6k7C6pKKk5wacZSObGzysmxVaFR8nmK3Vdz0Lxlj5Wz2KrsqmBng6GUGnUn/pub?gid=300229370&single=true&output=csv",
+    postUrl: "https://docs.google.com/forms/d/e/1FAIpQLSemjG5tFUNLUCOwA8uNcQ1w4qNYkf6W0RKaSjmbXWoIhp5Eag/formResponse",
+    caseEntry: "entry.1816622582", codeEntry: "entry.679264549"
+  },
   prize: "₹200",
   deadlineHour: 22,                  // raat 10 baje
-  questions: [                        // aaj ke sawaal (roz badlo)
-    "Main jitna badhta hoon, utna kam dikhta hoon. Main kaun?",
-    "Sheru bhai ke paas 17 samose the. 9 ko chhod ke baaki sab kha gaye. Kitne bache?",
-    "2, 6, 12, 20, 30, agla number kya hai?",
-    "Aaj se 2 din pehle Sunday tha. Aaj se 3 din baad kaun sa din hoga?",
-    "LEHPAI ko seedha karo."
-  ],
   tieBreaker: "Is case ke liye ek funny one-liner likho (max 15 words).",
   form: {                             // Google Form (answers yahan jaate hain)
     viewUrl: "https://docs.google.com/forms/d/e/1FAIpQLSczOf3GK8GyMVX8rUU4M_oOb5tA8Vag9o73983FPWrSxbwZow/viewform",
@@ -408,17 +430,12 @@ function applyConfig(){
   const parts = CONFIG.brand.split(" ");
   $("brandName").innerHTML = parts.length > 1 ? `${parts.slice(0,-1).join(" ")} <b>${parts.at(-1)}</b>` : CONFIG.brand;
   $("footBrand").textContent = CONFIG.brand;
-  $("caseNo").textContent = "#" + CONFIG.caseNo;
-  $("caseTitle").textContent = CONFIG.caseTitle;
-  $("fileTitle").textContent = CONFIG.caseTitle;
   $("prizeAmt").textContent = CONFIG.prize;
   $("prizeInline").textContent = CONFIG.prize;
   $("kw1").textContent = CONFIG.keyword;
   $("dmBtnTop").textContent = "DM " + CONFIG.keyword;
   $("dmBtnTop").href = CONFIG.instaUrl;
-  $("solveCase").textContent = "#" + CONFIG.caseNo;
   $("tbText").textContent = "TIE-BREAKER: " + CONFIG.tieBreaker;
-  $("qList").innerHTML = CONFIG.questions.map((q,i) => `<li><label for="sq${i}">${esc(q)}<input id="sq${i}" autocomplete="off" placeholder="Tumhara answer"></label></li>`).join("");
   $("buy1").href = CONFIG.shop.pack;
   $("buy2").href = CONFIG.shop.toolkit;
   ["dmBtnTop","buy1","buy2"].forEach(id => { const a = $(id); if (a.getAttribute("href") !== "#") { a.target = "_blank"; a.rel = "noopener"; } });
@@ -445,6 +462,62 @@ function renderPast(){
       <div><h4>${esc(w.handle)}</h4><p>${esc(w.title)} · ${esc(w.score)}</p></div>
       ${w.paid ? '<span class="paid">PAID ✓</span>' : ''}
     </div>`).join("");
+}
+
+/* ====== CASE ENGINE ====== */
+const CASES = window.CASES || [];
+let CUR = 0;                       // 0-based index into CASES
+const pad = n => String(n).padStart(3, "0");
+function dateIndex(){
+  const [y,m,d] = CONFIG.startDate.split("-").map(Number);
+  const start = new Date(y, m - 1, d), now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Math.round((today - start) / 864e5);
+  return ((days % CASES.length) + CASES.length) % CASES.length;
+}
+async function liveIndex(){
+  try {
+    const r = await fetch(CONFIG.control.csv + "&t=" + Date.now(), { cache: "no-store" });
+    const n = parseInt((await r.text()).replace(/[^0-9]/g, ""), 10);
+    if (n >= 1 && n <= CASES.length) return n - 1;
+  } catch (e) {}
+  return dateIndex();
+}
+function renderCase(i){
+  CUR = i; const c = CASES[i]; if (!c) return;
+  const no = pad(i + 1);
+  CONFIG.caseNo = no; CONFIG.caseTitle = c.t; CONFIG.questions = c.q;
+  $("caseNo").textContent = "#" + no; $("caseTitle").textContent = c.t; $("fileTitle").textContent = c.t;
+  $("teaser").textContent = c.s.split(". ").slice(0, 1).join(". ") + "...";
+  $("solveCase").textContent = "#" + no; $("storyTitle").textContent = `Case #${no}: ${c.t}`; $("storyText").textContent = c.s;
+  $("qList").innerHTML = c.q.map((q,k) => `<li><label for="sq${k}">${esc(q)}<input id="sq${k}" autocomplete="off" placeholder="Tumhara answer"></label></li>`).join("");
+  $("fCase").value = no; $("fTitle").value = c.t; updateCard && updateCard();
+  const live = $("admLive"); if (live) live.textContent = `#${no} ${c.t}`;
+  const pick = $("admPick"); if (pick) pick.value = String(i + 1);
+}
+
+/* ====== ADMIN ====== */
+function setupAdmin(){
+  const show = () => { $("admin").hidden = location.hash !== "#admin"; if (!$("admin").hidden) $("admin").scrollIntoView(); };
+  window.addEventListener("hashchange", show); show();
+  $("admPick").innerHTML = CASES.map((c,i) => `<option value="${i+1}">#${pad(i+1)} ${esc(c.t)}</option>`).join("");
+  $("admPick").value = String(CUR + 1);
+  try { const saved = sessionStorage.getItem("admCode"); if (saved) $("admCode").value = saved; } catch (e) {}
+  const send = async n => {
+    const msg = $("admMsg"), code = $("admCode").value.trim();
+    if (!code) { msg.className = "smsg err"; msg.textContent = "Pehle secret code daalo."; return; }
+    try { sessionStorage.setItem("admCode", code); } catch (e) {}
+    const body = new URLSearchParams();
+    body.append(CONFIG.control.caseEntry, String(n)); body.append(CONFIG.control.codeEntry, code);
+    msg.className = "smsg"; msg.textContent = "Bhej rahe hain...";
+    try {
+      await fetch(CONFIG.control.postUrl, { method: "POST", mode: "no-cors", body });
+      renderCase(n - 1);
+      msg.className = "smsg ok"; msg.textContent = `Case #${pad(n)} bhej diya. Code sahi hai toh 2 se 5 minute mein sabko dikhega.`;
+    } catch (e) { msg.className = "smsg err"; msg.textContent = "Net check karo, phir dobara try karo."; }
+  };
+  $("admNext").addEventListener("click", () => send(((CUR + 1) % CASES.length) + 1));
+  $("admForm").addEventListener("submit", e => { e.preventDefault(); send(parseInt($("admPick").value, 10)); });
 }
 
 async function submitCase(e){
@@ -624,6 +697,7 @@ async function saveCard(){
 function today(){ return new Date().toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" }); }
 
 async function init(){
+  renderCase(dateIndex());
   applyConfig(); tick(); setInterval(tick, 1000); renderPast(); renderBoard();
   $("fDate").value = today();
   try { await Promise.all([document.fonts.load('80px "Bungee"'), document.fonts.load('30px "Special Elite"'), document.fonts.load('600 30px "Chakra Petch"')]); } catch(e) {}
@@ -633,6 +707,8 @@ async function init(){
   $("cardForm").addEventListener("submit", e => e.preventDefault());
   $("saveBtn").addEventListener("click", saveCard);
   $("solveForm").addEventListener("submit", submitCase);
+  setupAdmin();
+  liveIndex().then(i => { if (i !== CUR) renderCase(i); });
   if (window.claude && typeof window.claude.use === "function") {
     window.claude.use("downloads").then(d => { dlApi = d; }).catch(() => {});
   }
