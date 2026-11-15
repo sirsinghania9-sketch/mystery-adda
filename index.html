@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mystery Adda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@400;500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a detective's case board at night. Case file (paper) on a dark desk, brass for rewards, siren red for urgency. */
+:root{
+  --desk:#0b0d17;
+  --panel:#151a2c;
+  --line:#2a3150;
+  --paper:#ece0c4;
+  --ink:#f3efe6;
+  --muted:#9aa3c4;
+  --brass:#f5b83d;
+  --siren:#ff3b4e;
+  --font-display:"Bungee", "Impact", system-ui, sans-serif;
+  --font-body:"Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --font-type:"Special Elite", "Courier New", monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--desk);color:var(--ink);font-family:var(--font-body);font-size:17px;line-height:1.5;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px);mix-blend-mode:overlay}
+a{color:inherit}
+img{max-width:100%}
+:focus-visible{outline:3px solid var(--brass);outline-offset:3px}
+.wrap{width:min(1120px,100% - 32px);margin-inline:auto}
+
+/* top bar */
+.bar{position:sticky;top:0;z-index:40;background:rgba(11,13,23,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.bar .wrap{display:flex;align-items:center;gap:20px;height:64px}
+.logo{font-family:var(--font-display);font-size:20px;letter-spacing:.02em;text-decoration:none;display:flex;align-items:center;gap:10px}
+.logo b{color:var(--brass);font-weight:400}
+.logo svg{flex:none}
+.nav{display:flex;gap:18px;margin-left:auto;font-weight:600;font-size:15px}
+.nav a{text-decoration:none;color:var(--muted)}
+.nav a:hover{color:var(--ink)}
+.btn{display:inline-flex;align-items:center;gap:10px;font-family:var(--font-display);font-size:16px;letter-spacing:.03em;text-decoration:none;
+  padding:14px 22px;border-radius:6px;border:2px solid var(--brass);color:var(--desk);background:var(--brass);cursor:pointer;
+  box-shadow:4px 4px 0 var(--siren);transition:transform .12s,box-shadow .12s}
+.btn:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--siren)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--siren)}
+.btn.ghost{background:transparent;color:var(--brass);box-shadow:4px 4px 0 var(--line)}
+.btn.small{padding:9px 14px;font-size:13px}
+@media (max-width:820px){.nav{display:none}.bar .btn.small{margin-left:auto}}
+
+/* hero */
+.hero{position:relative;padding:56px 0 64px;overflow:hidden}
+.hero::after{content:"";position:absolute;width:720px;height:720px;right:-200px;top:-220px;border-radius:50%;
+  background:radial-gradient(circle,rgba(245,184,61,.18),transparent 62%);pointer-events:none}
+.hero .wrap{display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center;position:relative;z-index:1}
+@media (max-width:900px){.hero .wrap{grid-template-columns:1fr}}
+.live{display:inline-flex;align-items:center;gap:10px;font-family:var(--font-type);font-size:15px;color:var(--siren);
+  border:1px solid var(--siren);padding:6px 12px;border-radius:4px}
+.live i{width:9px;height:9px;border-radius:50%;background:var(--siren);animation:blink 1s steps(2) infinite}
+.live.closed{color:var(--muted);border-color:var(--line)}
+.live.closed i{background:var(--muted);animation:none}
+@keyframes blink{50%{opacity:.15}}
+h1{font-family:var(--font-display);font-weight:400;font-size:clamp(44px,7vw,84px);line-height:.95;margin:18px 0 14px;text-wrap:balance;
+  text-shadow:3px 3px 0 var(--siren)}
+h1 span{color:var(--brass)}
+.casename{font-family:var(--font-type);font-size:21px;color:var(--paper);margin:0 0 26px}
+.casename em{font-style:normal;color:var(--brass)}
+.timer{display:flex;gap:10px;margin:0 0 28px}
+.tbox{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-width:78px;text-align:center}
+.tbox b{display:block;font-family:var(--font-display);font-weight:400;font-size:34px;line-height:1;font-variant-numeric:tabular-nums}
+.tbox small{font-size:12px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+.timer-label{font-size:14px;color:var(--muted);margin:0 0 8px;letter-spacing:.1em;text-transform:uppercase}
+.actions{display:flex;flex-wrap:wrap;gap:16px}
+.freenote{margin:20px 0 0;font-size:15px;color:var(--muted)}
+.freenote strong{color:var(--ink)}
+
+/* case file card in hero */
+.file{position:relative;background:var(--paper);color:#2a2116;border-radius:4px 14px 14px 14px;padding:30px 28px 26px;transform:rotate(2deg);
+  box-shadow:0 30px 60px rgba(0,0,0,.55);font-family:var(--font-type)}
+.file::before{content:"CASE FILE";position:absolute;top:-30px;left:0;background:var(--paper);padding:6px 18px 4px;border-radius:10px 10px 0 0;
+  font-size:14px;letter-spacing:.15em}
+.file h3{font-family:var(--font-display);font-weight:400;font-size:26px;margin:0 0 6px;color:#1d1710}
+.file .meta{font-size:14px;color:#6b5a40;margin:0 0 16px}
+.file ol{margin:0;padding-left:22px;font-size:16px;line-height:1.75}
+.file ol li.blur{filter:blur(5px);user-select:none}
+.stamp{position:absolute;right:16px;bottom:22px;transform:rotate(-14deg);font-family:var(--font-display);font-size:22px;color:var(--siren);
+  border:3px solid var(--siren);padding:4px 12px;border-radius:6px;opacity:.85;animation:slam .5s .3s both}
+@keyframes slam{from{transform:rotate(-14deg) scale(2.4);opacity:0}to{transform:rotate(-14deg) scale(1);opacity:.85}}
+.prize{position:absolute;left:-26px;bottom:-28px;width:112px;height:112px;border-radius:50%;background:var(--brass);color:var(--desk);
+  display:grid;place-content:center;text-align:center;font-family:var(--font-display);transform:rotate(-8deg);
+  box-shadow:0 0 0 6px var(--desk),0 0 0 8px var(--brass);animation:bob 3s ease-in-out infinite}
+.prize b{font-size:30px;font-weight:400;line-height:1}
+.prize small{font-size:12px}
+@keyframes bob{50%{transform:rotate(-8deg) translateY(-6px)}}
+@media (max-width:900px){.file{margin:40px 10px 30px}}
+
+/* sections */
+section{padding:72px 0}
+.kicker{font-family:var(--font-type);color:var(--siren);font-size:15px;letter-spacing:.1em;margin:0 0 8px}
+h2{font-family:var(--font-display);font-weight:400;font-size:clamp(30px,4.4vw,48px);line-height:1.05;margin:0 0 14px;text-wrap:balance}
+.lead{color:var(--muted);max-width:60ch;margin:0 0 36px}
+
+/* solve form */
+.solve{background:var(--paper);color:#2a2116;border-radius:14px;padding:32px;display:grid;gap:22px;font-family:var(--font-type);
+  box-shadow:0 30px 60px rgba(0,0,0,.45);max-width:860px}
+.solve label{display:grid;gap:8px;font-size:17px}
+.solve input,.solve textarea{font:inherit;font-family:var(--font-body);font-size:17px;color:#1a140d;background:#fffaf0;border:2px solid #cbb98f;border-radius:8px;padding:11px 13px}
+.solve input:focus,.solve textarea:focus{border-color:#c2263a;outline:none}
+.solve textarea{min-height:76px;resize:vertical}
+.qlist{margin:0;padding:0;list-style:none;display:grid;gap:18px;counter-reset:q}
+.qlist li{counter-increment:q;display:grid;gap:8px}
+.qlist li::before{content:"SAWAAL " counter(q);font-family:var(--font-display);font-size:13px;color:#c2263a;letter-spacing:.06em}
+.hfield,.qline{padding-top:6px}
+.qline span{font-family:var(--font-display);font-size:13px;color:#c2263a}
+.submit-row{display:flex;flex-wrap:wrap;align-items:center;gap:18px}
+.smsg{margin:0;font-family:var(--font-body);font-weight:600}
+.smsg.ok{color:#1d7a45}.smsg.err{color:#c2263a}
+.solve .btn[disabled]{opacity:.6;cursor:wait}
+
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+@media (max-width:820px){.steps{grid-template-columns:1fr}}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px;position:relative}
+.step .n{font-family:var(--font-display);font-size:54px;line-height:1;color:transparent;-webkit-text-stroke:1.5px var(--brass)}
+.step h3{font-size:22px;margin:12px 0 6px}
+.step p{margin:0;color:var(--muted)}
+.step code{font-family:var(--font-display);color:var(--brass);font-size:16px}
+
+/* winners */
+.winners{display:grid;grid-template-columns:1.1fr 1fr;gap:36px;align-items:start}
+@media (max-width:900px){.winners{grid-template-columns:1fr}}
+.today-card img{width:100%;border-radius:14px;box-shadow:0 24px 50px rgba(0,0,0,.5);display:block}
+.past{display:grid;gap:12px}
+.past-item{display:grid;grid-template-columns:64px 1fr auto;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.past-item .cn{font-family:var(--font-display);color:var(--brass);font-size:15px}
+.past-item h4{margin:0;font-size:18px}
+.past-item p{margin:2px 0 0;color:var(--muted);font-size:14px;font-family:var(--font-type)}
+.paid{font-size:13px;font-weight:700;color:#7ee0a1;border:1px solid #2f6b47;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.sample{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--desk);background:var(--muted);padding:2px 8px;border-radius:4px;vertical-align:middle;margin-left:10px}
+
+/* leaderboard */
+.board{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.row{display:grid;grid-template-columns:56px 1fr 150px 90px;gap:14px;align-items:center;padding:14px 20px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row.head{color:var(--muted);font-size:13px;letter-spacing:.12em;text-transform:uppercase;background:rgba(255,255,255,.02)}
+.rank{font-family:var(--font-display);font-size:22px;text-align:center}
+.r1 .rank{color:var(--brass)} .r2 .rank{color:#cfd6ee} .r3 .rank{color:#d9925b}
+.who{font-weight:700;font-size:18px}
+.title{font-size:13px;font-weight:700;letter-spacing:.06em;padding:4px 10px;border-radius:999px;justify-self:start;border:1px solid var(--line);color:var(--muted)}
+.title.sherlock{color:var(--desk);background:var(--brass);border-color:var(--brass)}
+.title.inspector{color:var(--brass);border-color:var(--brass)}
+.pts{font-family:var(--font-display);font-size:20px;text-align:right;font-variant-numeric:tabular-nums}
+.bar-xp{height:4px;background:var(--line);border-radius:4px;margin-top:6px;overflow:hidden}
+.bar-xp i{display:block;height:100%;background:linear-gradient(90deg,var(--siren),var(--brass))}
+@media (max-width:620px){.row{grid-template-columns:40px 1fr 70px}.row .title{display:none}.row.head span:nth-child(3){display:none}}
+.ranks-key{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;font-size:14px;color:var(--muted)}
+
+/* card maker */
+.maker{display:grid;grid-template-columns:360px 1fr;gap:36px;align-items:start}
+@media (max-width:900px){.maker{grid-template-columns:1fr}}
+.form{display:grid;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
+.form label{display:grid;gap:6px;font-size:14px;font-weight:600;color:var(--muted)}
+.form input,.form textarea{font:inherit;color:var(--ink);background:var(--desk);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.form textarea{resize:vertical;min-height:72px;font-family:var(--font-type)}
+.form .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.preview img{width:100%;max-width:540px;border-radius:14px;box-shadow:0 24px 50px rgba(0,0,0,.5);display:block}
+.hint{font-size:14px;color:var(--muted);margin:12px 0 0}
+
+/* shop */
+.shop{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media (max-width:820px){.shop{grid-template-columns:1fr}}
+.product{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px;display:grid;gap:10px}
+.product .price{font-family:var(--font-display);font-size:40px;color:var(--brass);line-height:1}
+.product h3{margin:0;font-size:22px}
+.product p{margin:0;color:var(--muted)}
+.disclaim{margin-top:22px;padding:14px 18px;border-left:4px solid var(--brass);background:rgba(245,184,61,.07);font-size:15px}
+
+/* rules */
+.rules{columns:2;column-gap:40px;padding-left:22px;margin:0;color:var(--muted)}
+.rules li{margin-bottom:10px;break-inside:avoid}
+.rules strong{color:var(--ink)}
+@media (max-width:720px){.rules{columns:1}}
+footer{border-top:1px solid var(--line);padding:32px 0 48px;color:var(--muted);font-size:14px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="Mystery Adda home">
+      <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="#f5b83d" stroke-width="3"/><path d="M18.5 18.5 27 27" stroke="#ff3b4e" stroke-width="4" stroke-linecap="round"/></svg>
+      <span id="brandName">MYSTERY <b>ADDA</b></span>
+    </a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#case">Aaj ka case</a>
+      <a href="#winners">Winners</a>
+      <a href="#leaderboard">Leaderboard</a>
+      <a href="#card-maker">Winner card</a>
+      <a href="#shop">Shop</a>
+    </nav>
+    <a class="btn small" id="dmBtnTop" href="#">DM MYSTERY</a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero" id="case">
+    <div class="wrap">
+      <div>
+        <span class="live" id="liveTag"><i></i><span id="liveText">CASE LIVE HAI</span></span>
+        <h1>Dimaag lagao.<br><span>Detective</span> bano.</h1>
+        <p class="casename">Case <em id="caseNo">#007</em>: <span id="caseTitle">Gayab Samose ka Raaz</span></p>
+        <p class="timer-label" id="timerLabel">Entries band hone mein</p>
+        <div class="timer" aria-live="polite">
+          <div class="tbox"><b id="th">00</b><small>Ghante</small></div>
+          <div class="tbox"><b id="tm">00</b><small>Minute</small></div>
+          <div class="tbox"><b id="ts">00</b><small>Second</small></div>
+        </div>
+        <div class="actions">
+          <a class="btn" href="#solve">Case solve karo</a>
+          <a class="btn ghost" href="#how">Kaise khelein</a>
+        </div>
+        <p class="freenote"><strong>Entry 100% free.</strong> Sabse sahi aur sabse creative answer wala kal ki reel mein Detective of the Day banega.</p>
+      </div>
+
+      <div class="file" aria-label="Case file preview">
+        <h3 id="fileTitle">Gayab Samose ka Raaz</h3>
+        <p class="meta">5 sawaal · 1 tie-breaker · deadline raat 10 baje</p>
+        <ol>
+          <li>Main jitna badhta hoon, utna kam dikhta hoon. Main kaun?</li>
+          <li class="blur">Sheru bhai ke paas 17 samose the, kitne bache?</li>
+          <li class="blur">2, 6, 12, 20, 30, agla number?</li>
+          <li class="blur">Aaj se 2 din pehle Sunday tha, toh...</li>
+          <li class="blur">LEHPAI ko seedha karo</li>
+        </ol>
+        <span class="stamp">TOP SECRET</span>
+        <div class="prize"><b id="prizeAmt">₹200</b><small>INAAM</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="solve">
+    <div class="wrap">
+      <p class="kicker">// CASE FILE <span id="solveCase">#007</span></p>
+      <h2>Sawaal padho, answer bhejo</h2>
+      <p class="lead">Deadline raat 10 baje. Ek account se ek hi entry. Answers comments mein mat likhna, warna disqualify.</p>
+      <form class="solve" id="solveForm" novalidate>
+        <label class="hfield" for="sHandle">Tumhara Instagram handle<input id="sHandle" placeholder="@tumhara.handle" autocomplete="off" required></label>
+        <ol class="qlist" id="qList"></ol>
+        <label class="qline" for="sLine"><span id="tbText">Tie-breaker</span><textarea id="sLine" maxlength="140" placeholder="Apna best one-liner yahan..."></textarea></label>
+        <div class="submit-row">
+          <button class="btn" type="submit" id="sBtn">Case submit karo</button>
+          <p class="smsg" id="sMsg" role="status"></p>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <p class="kicker">// KHELNA KAISE HAI</p>
+      <h2>3 step. Koi fees nahi.</h2>
+      <p class="lead">Har case ek din chalta hai. Shaam 7 baje reel aati hai, raat 10 baje entries band, aur agle din shaam 7 baje result.</p>
+      <div class="steps">
+        <div class="step"><div class="n">01</div><h3>DM karo</h3><p>Reel pe ya Instagram DM mein likho <code id="kw1">MYSTERY</code>. Case file turant aa jayegi.</p></div>
+        <div class="step"><div class="n">02</div><h3>Case solve karo</h3><p>5 sawaal ke answer aur ek mazedaar one-liner, raat 10 baje se pehle bhejo.</p></div>
+        <div class="step"><div class="n">03</div><h3>Detective of the Day</h3><p>Sabse sahi aur creative answer jeetega. Naam reel pe, card tumhare haath mein, aur <span id="prizeInline">₹200</span> UPI pe.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="winners">
+    <div class="wrap">
+      <p class="kicker">// HALL OF FAME</p>
+      <h2>Kal ka Detective of the Day <span class="sample">SAMPLE</span></h2>
+      <p class="lead">Har winner ka naam, case aur payment proof yahan rehta hai. Prize result ke 48 ghante ke andar bheja jata hai.</p>
+      <div class="winners">
+        <div class="today-card"><img id="todayCard" alt="Detective of the Day card"></div>
+        <div class="past" id="pastList"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="leaderboard">
+    <div class="wrap">
+      <p class="kicker">// RANKINGS</p>
+      <h2>Top detectives <span class="sample">SAMPLE</span></h2>
+      <p class="lead">Har sahi answer = 10 points, Detective of the Day = 50 bonus. Points se rank badhta hai.</p>
+      <div class="board" id="board" role="table" aria-label="Leaderboard"></div>
+      <div class="ranks-key"><span class="title">Rookie 0+</span><span class="title inspector">Inspector 200+</span><span class="title sherlock">Sherlock 500+</span></div>
+    </div>
+  </section>
+
+  <section id="card-maker">
+    <div class="wrap">
+      <p class="kicker">// WINNER CARD</p>
+      <h2>Detective of the Day card banao</h2>
+      <p class="lead">Winner ki details bharo, card Instagram story aur post dono ke liye 1080 × 1350 mein ban jayega.</p>
+      <div class="maker">
+        <form class="form" id="cardForm">
+          <label for="fHandle">Instagram handle<input id="fHandle" value="@riya.solves"></label>
+          <div class="two">
+            <label for="fCase">Case no.<input id="fCase" value="007"></label>
+            <label for="fScore">Score<input id="fScore" value="5/5"></label>
+          </div>
+          <label for="fTitle">Case ka naam<input id="fTitle" value="Gayab Samose ka Raaz"></label>
+          <label for="fLine">Unka one-liner<textarea id="fLine">Samose gayab nahi hue, Sheru bhai ka pet hi Bermuda Triangle hai.</textarea></label>
+          <div class="two">
+            <label for="fPrize">Inaam<input id="fPrize" value="₹200"></label>
+            <label for="fDate">Date<input id="fDate" value=""></label>
+          </div>
+          <button class="btn" type="button" id="saveBtn">Card save karo</button>
+        </form>
+        <div class="preview">
+          <img id="cardImg" alt="Generated Detective of the Day card">
+          <p class="hint">Save na ho toh card pe long-press (phone) ya right-click (laptop) karke "Save image" dabao.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="shop">
+    <div class="wrap">
+      <p class="kicker">// DETECTIVE SHOP</p>
+      <h2>Practice karo, tez bano</h2>
+      <p class="lead">Ye products alag se bikte hain. Mystery case khelne ke liye inki koi zaroorat nahi.</p>
+      <div class="shop">
+        <div class="product"><span class="price">₹29</span><h3>Puzzle Practice Pack</h3><p>50 riddles, logic aur math puzzles, answers aur tricks ke saath. PDF, turant delivery.</p><a class="btn small" id="buy1" href="#">Pack lo</a></div>
+        <div class="product"><span class="price">₹99</span><h3>AI Creator Toolkit</h3><p>Reels, captions aur content ideas ke liye ready prompts aur templates, Hinglish mein.</p><a class="btn small ghost" id="buy2" href="#">Dekho</a></div>
+      </div>
+      <p class="disclaim"><strong>Clear rule:</strong> kuch bhi kharidne se contest mein koi extra entry, hint ya fayda nahi milta. Entry hamesha free hai, sabke liye same.</p>
+    </div>
+  </section>
+
+  <section id="rules">
+    <div class="wrap">
+      <p class="kicker">// RULES</p>
+      <h2>Fair play</h2>
+      <ol class="rules">
+        <li><strong>Entry bilkul free.</strong> Koi purchase ya payment zaroori nahi.</li>
+        <li><strong>Winner skill se.</strong> Sahi answers ka score, tie ho toh one-liner ki creativity, phir bhi tie ho toh jisne pehle bheja.</li>
+        <li><strong>Ek account, ek entry.</strong></li>
+        <li><strong>Deadline raat 10 baje.</strong> Uske baad aayi entry count nahi hogi.</li>
+        <li><strong>Comments mein answer = disqualify.</strong></li>
+        <li><strong>Prize 48 ghante mein</strong> UPI pe. 18 se kam ke winner ka prize parent/guardian ko.</li>
+        <li><strong>Organizer ka faisla final.</strong> Chal rahe case ke beech rules nahi badlenge.</li>
+        <li>Ye contest Instagram/Meta se sponsored, endorsed ya affiliated nahi hai.</li>
+      </ol>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span id="footBrand">Mystery Adda</span>
+    <span>Roz ek case. Free entry. Asli inaam.</span>
+  </div>
+</footer>
+
+<script>
+/* ====== EDIT THIS BLOCK ONLY ====== */
+const CONFIG = {
+  brand: "MYSTERY ADDA",
+  handle: "@mysteryadda",            // tumhara Instagram handle
+  keyword: "MYSTERY",
+  caseNo: "007",
+  caseTitle: "Gayab Samose ka Raaz",
+  prize: "₹200",
+  deadlineHour: 22,                  // raat 10 baje
+  questions: [                        // aaj ke sawaal (roz badlo)
+    "Main jitna badhta hoon, utna kam dikhta hoon. Main kaun?",
+    "Sheru bhai ke paas 17 samose the. 9 ko chhod ke baaki sab kha gaye. Kitne bache?",
+    "2, 6, 12, 20, 30, agla number kya hai?",
+    "Aaj se 2 din pehle Sunday tha. Aaj se 3 din baad kaun sa din hoga?",
+    "LEHPAI ko seedha karo."
+  ],
+  tieBreaker: "Is case ke liye ek funny one-liner likho (max 15 words).",
+  form: {                             // Google Form (answers yahan jaate hain)
+    viewUrl: "https://docs.google.com/forms/d/e/1FAIpQLSczOf3GK8GyMVX8rUU4M_oOb5tA8Vag9o73983FPWrSxbwZow/viewform",
+    postUrl: "https://docs.google.com/forms/d/e/1FAIpQLSczOf3GK8GyMVX8rUU4M_oOb5tA8Vag9o73983FPWrSxbwZow/formResponse",
+    handle: "entry.459527439", caseNo: "entry.1558960065", answers: "entry.636741102", line: "entry.1787601240"
+  },
+  instaUrl: "https://instagram.com/", // tumhari profile ka link
+  shop: { pack: "#", toolkit: "#" }, // Razorpay / Instamojo links
+  winners: [                          // SAMPLE: asli winners se badlo
+    { caseNo:"006", handle:"@arjun_thinks", title:"Chai Wale ka Code", score:"5/5", paid:true },
+    { caseNo:"005", handle:"@nehaa.k", title:"Ulti Ghadi ka Case", score:"4/5", paid:true },
+    { caseNo:"004", handle:"@the.rohit", title:"Laapata Charger", score:"5/5", paid:true }
+  ],
+  leaderboard: [                      // SAMPLE
+    { handle:"@riya.solves", pts:540 },
+    { handle:"@arjun_thinks", pts:410 },
+    { handle:"@nehaa.k", pts:300 },
+    { handle:"@the.rohit", pts:180 },
+    { handle:"@kabir.x", pts:120 }
+  ]
+};
+/* ================================== */
+
+const $ = id => document.getElementById(id);
+
+function applyConfig(){
+  const parts = CONFIG.brand.split(" ");
+  $("brandName").innerHTML = parts.length > 1 ? `${parts.slice(0,-1).join(" ")} <b>${parts.at(-1)}</b>` : CONFIG.brand;
+  $("footBrand").textContent = CONFIG.brand;
+  $("caseNo").textContent = "#" + CONFIG.caseNo;
+  $("caseTitle").textContent = CONFIG.caseTitle;
+  $("fileTitle").textContent = CONFIG.caseTitle;
+  $("prizeAmt").textContent = CONFIG.prize;
+  $("prizeInline").textContent = CONFIG.prize;
+  $("kw1").textContent = CONFIG.keyword;
+  $("dmBtnTop").textContent = "DM " + CONFIG.keyword;
+  $("dmBtnTop").href = CONFIG.instaUrl;
+  $("solveCase").textContent = "#" + CONFIG.caseNo;
+  $("tbText").textContent = "TIE-BREAKER: " + CONFIG.tieBreaker;
+  $("qList").innerHTML = CONFIG.questions.map((q,i) => `<li><label for="sq${i}">${esc(q)}<input id="sq${i}" autocomplete="off" placeholder="Tumhara answer"></label></li>`).join("");
+  $("buy1").href = CONFIG.shop.pack;
+  $("buy2").href = CONFIG.shop.toolkit;
+  ["dmBtnTop","buy1","buy2"].forEach(id => { const a = $(id); if (a.getAttribute("href") !== "#") { a.target = "_blank"; a.rel = "noopener"; } });
+}
+
+function tick(){
+  const now = new Date();
+  const dl = new Date(now); dl.setHours(CONFIG.deadlineHour, 0, 0, 0);
+  let diff = dl - now, open = diff > 0;
+  if (!open) { const res = new Date(now); res.setDate(res.getDate() + 1); res.setHours(19,0,0,0); diff = res - now; }
+  const s = Math.max(0, Math.floor(diff / 1000));
+  $("th").textContent = String(Math.floor(s / 3600)).padStart(2, "0");
+  $("tm").textContent = String(Math.floor(s % 3600 / 60)).padStart(2, "0");
+  $("ts").textContent = String(s % 60).padStart(2, "0");
+  $("liveTag").classList.toggle("closed", !open);
+  $("liveText").textContent = open ? "CASE LIVE HAI" : "ENTRIES BAND";
+  $("timerLabel").textContent = open ? "Entries band hone mein" : "Result aane mein";
+}
+
+function renderPast(){
+  $("pastList").innerHTML = CONFIG.winners.map(w => `
+    <div class="past-item">
+      <span class="cn">#${w.caseNo}</span>
+      <div><h4>${esc(w.handle)}</h4><p>${esc(w.title)} · ${esc(w.score)}</p></div>
+      ${w.paid ? '<span class="paid">PAID ✓</span>' : ''}
+    </div>`).join("");
+}
+
+async function submitCase(e){
+  e.preventDefault();
+  const msg = $("sMsg"), btn = $("sBtn");
+  let handle = $("sHandle").value.trim();
+  if (!handle) { msg.className = "smsg err"; msg.textContent = "Pehle apna Instagram handle daalo."; $("sHandle").focus(); return; }
+  if (!handle.startsWith("@")) handle = "@" + handle;
+  const now = new Date(), dl = new Date(now); dl.setHours(CONFIG.deadlineHour,0,0,0);
+  if (now > dl) { msg.className = "smsg err"; msg.textContent = "Aaj ki entries band ho gayi. Kal shaam 7 baje naya case aayega."; return; }
+  const ans = CONFIG.questions.map((q,i) => `${i+1}. ${$("sq"+i).value.trim() || "-"}`).join("\n");
+  const body = new URLSearchParams();
+  body.append(CONFIG.form.handle, handle);
+  body.append(CONFIG.form.caseNo, CONFIG.caseNo);
+  body.append(CONFIG.form.answers, ans);
+  body.append(CONFIG.form.line, $("sLine").value.trim() || "-");
+  btn.disabled = true; msg.className = "smsg"; msg.textContent = "Bhej rahe hain...";
+  try {
+    await fetch(CONFIG.form.postUrl, { method: "POST", mode: "no-cors", body });
+    msg.className = "smsg ok"; msg.textContent = `Case submit ho gaya, ${handle}! Result kal shaam 7 baje reel pe.`;
+    $("solveForm").reset();
+  } catch (err) {
+    msg.className = "smsg err";
+    msg.innerHTML = `Submit nahi hua. <a href="${CONFIG.form.viewUrl}" target="_blank" rel="noopener">Yahan se bhejo</a>.`;
+  } finally { btn.disabled = false; }
+}
+
+function rankTitle(p){ return p >= 500 ? ["Sherlock","sherlock"] : p >= 200 ? ["Inspector","inspector"] : ["Rookie",""]; }
+function renderBoard(){
+  const max = Math.max(...CONFIG.leaderboard.map(r => r.pts), 1);
+  const rows = CONFIG.leaderboard.slice().sort((a,b) => b.pts - a.pts).map((r,i) => {
+    const [t,c] = rankTitle(r.pts);
+    return `<div class="row r${i+1}" role="row">
+      <span class="rank" role="cell">${i+1}</span>
+      <div role="cell"><div class="who">${esc(r.handle)}</div><div class="bar-xp"><i style="width:${Math.round(r.pts/max*100)}%"></i></div></div>
+      <span class="title ${c}" role="cell">${t}</span>
+      <span class="pts" role="cell">${r.pts}</span></div>`;
+  }).join("");
+  $("board").innerHTML = `<div class="row head" role="row"><span role="columnheader">#</span><span role="columnheader">Detective</span><span role="columnheader">Rank</span><span role="columnheader" style="text-align:right">Points</span></div>` + rows;
+}
+
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+/* ====== CARD ====== */
+const W = 1080, H = 1350;
+function rr(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function wrap(ctx, text, maxW){
+  const words = text.split(/\s+/); const lines = []; let line = "";
+  for (const w of words){ const t = line ? line + " " + w : w; if (ctx.measureText(t).width > maxW && line){ lines.push(line); line = w; } else line = t; }
+  if (line) lines.push(line); return lines;
+}
+function fit(ctx, text, font, size, maxW){ let s = size; do { ctx.font = `${s}px ${font}`; s -= 4; } while (ctx.measureText(text).width > maxW && s > 30); return s + 4; }
+
+function drawCard(d){
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const x = c.getContext("2d");
+  const DISP = '"Bungee", Impact, sans-serif', TYPE = '"Special Elite", "Courier New", monospace', BODY = '"Chakra Petch", sans-serif';
+
+  // desk background
+  const g = x.createRadialGradient(W*0.72, H*0.18, 40, W*0.5, H*0.5, H*0.85);
+  g.addColorStop(0, "#26305a"); g.addColorStop(0.45, "#121731"); g.addColorStop(1, "#07080f");
+  x.fillStyle = g; x.fillRect(0,0,W,H);
+  // diagonal case-tape stripes
+  x.save(); x.globalAlpha = 0.05; x.strokeStyle = "#f5b83d"; x.lineWidth = 18;
+  for (let i = -H; i < W + H; i += 70){ x.beginPath(); x.moveTo(i,0); x.lineTo(i - H, H); x.stroke(); } x.restore();
+  // grain
+  x.save(); x.globalAlpha = 0.06;
+  for (let i = 0; i < 9000; i++){ x.fillStyle = Math.random() > .5 ? "#fff" : "#000"; x.fillRect(Math.random()*W, Math.random()*H, 2, 2); } x.restore();
+  // spotlight
+  const sp = x.createRadialGradient(W*0.5, 760, 60, W*0.5, 760, 620);
+  sp.addColorStop(0, "rgba(245,184,61,.22)"); sp.addColorStop(1, "rgba(245,184,61,0)");
+  x.fillStyle = sp; x.fillRect(0,0,W,H);
+
+  // top row
+  x.fillStyle = "#f5b83d"; x.font = `30px ${DISP}`; x.textBaseline = "alphabetic";
+  x.fillText(CONFIG.brand, 80, 104);
+  x.textAlign = "right"; x.fillStyle = "#ff3b4e"; x.font = `32px ${TYPE}`;
+  x.fillText(`CASE #${d.caseNo}`, W - 80, 104); x.textAlign = "left";
+  x.fillStyle = "rgba(255,255,255,.18)"; x.fillRect(80, 128, W - 160, 2);
+
+  // headline with glitch offset
+  const head1 = "DETECTIVE", head2 = "OF THE DAY";
+  x.textAlign = "center";
+  x.font = `150px ${DISP}`;
+  x.fillStyle = "#ff3b4e"; x.fillText(head1, W/2 + 7, 300 + 7);
+  x.fillStyle = "#f5b83d"; x.fillText(head1, W/2, 300);
+  x.font = `78px ${DISP}`;
+  x.fillStyle = "#ff3b4e"; x.fillText(head2, W/2 + 5, 395 + 5);
+  x.fillStyle = "#f3efe6"; x.fillText(head2, W/2, 395);
+  x.textAlign = "left";
+
+  // case file (rotated paper)
+  x.save(); x.translate(W/2, 790); x.rotate(-0.035);
+  const pw = 860, ph = 620, px = -pw/2, py = -ph/2 + 10;
+  x.shadowColor = "rgba(0,0,0,.6)"; x.shadowBlur = 50; x.shadowOffsetY = 26;
+  x.fillStyle = "#d9c79f"; rr(x, px, py - 46, 260, 70, 16); x.fill();
+  x.fillStyle = "#ece0c4"; rr(x, px, py, pw, ph, 18); x.fill();
+  x.shadowColor = "transparent";
+  x.fillStyle = "#6b5a40"; x.font = `24px ${TYPE}`; x.fillText("CASE FILE / SOLVED", px + 26, py - 12);
+  // paper lines
+  x.strokeStyle = "rgba(107,90,64,.18)"; x.lineWidth = 2;
+  for (let ly = py + 120; ly < py + ph - 30; ly += 52){ x.beginPath(); x.moveTo(px + 40, ly); x.lineTo(px + pw - 40, ly); x.stroke(); }
+  // paperclip
+  x.strokeStyle = "#9aa3c4"; x.lineWidth = 7; x.lineCap = "round";
+  x.beginPath(); x.moveTo(px + pw - 120, py - 30); x.lineTo(px + pw - 120, py + 70); x.arc(px + pw - 102, py + 70, 18, Math.PI, 0, true); x.lineTo(px + pw - 84, py - 14); x.stroke();
+
+  // agent label + handle
+  x.fillStyle = "#6b5a40"; x.font = `26px ${TYPE}`; x.fillText("AGENT", px + 50, py + 78);
+  const hs = fit(x, d.handle, DISP, 92, pw - 100);
+  x.fillStyle = "#1a140d"; x.font = `${hs}px ${DISP}`; x.fillText(d.handle, px + 48, py + 78 + hs + 6);
+
+  // stats row
+  const sy = py + 230;
+  x.fillStyle = "#6b5a40"; x.font = `24px ${TYPE}`;
+  x.fillText("CASE", px + 50, sy); x.fillText("SCORE", px + pw - 230, sy);
+  x.fillStyle = "#1a140d"; x.font = `600 38px ${BODY}`;
+  const tl = wrap(x, d.title, pw - 360);
+  tl.slice(0,2).forEach((l,i) => x.fillText(l, px + 50, sy + 46 + i * 44));
+  x.font = `64px ${DISP}`; x.fillStyle = "#c2263a"; x.fillText(d.score, px + pw - 232, sy + 66);
+
+  // quote
+  x.fillStyle = "#1a140d"; x.font = `36px ${TYPE}`;
+  const ql = wrap(x, "“" + d.line + "”", pw - 110).slice(0, 4);
+  const qy = py + ph - 60 - (ql.length - 1) * 50;
+  x.fillStyle = "#ff3b4e"; x.fillRect(px + 46, qy - 40 - (0), 6, ql.length * 50 - 6);
+  x.fillStyle = "#2a2116"; ql.forEach((l,i) => x.fillText(l, px + 70, qy + i * 50));
+  x.restore();
+
+  // SOLVED stamp
+  x.save(); x.translate(800, 610); x.rotate(0.2); x.globalAlpha = 0.9;
+  x.strokeStyle = "#ff3b4e"; x.lineWidth = 8; rr(x, -170, -62, 340, 124, 14); x.stroke();
+  x.lineWidth = 3; rr(x, -156, -48, 312, 96, 8); x.stroke();
+  x.fillStyle = "#ff3b4e"; x.font = `62px ${DISP}`; x.textAlign = "center"; x.fillText("SOLVED", 0, 22);
+  x.restore();
+
+  // prize medal
+  x.save(); x.translate(190, 1150); x.rotate(-0.14);
+  x.fillStyle = "#07080f"; x.beginPath(); x.arc(0,0,122,0,Math.PI*2); x.fill();
+  x.fillStyle = "#f5b83d"; x.beginPath(); x.arc(0,0,110,0,Math.PI*2); x.fill();
+  x.strokeStyle = "#07080f"; x.lineWidth = 3; x.setLineDash([6,8]); x.beginPath(); x.arc(0,0,94,0,Math.PI*2); x.stroke(); x.setLineDash([]);
+  x.fillStyle = "#07080f"; x.textAlign = "center";
+  const ps = fit(x, d.prize, DISP, 60, 170); x.font = `${ps}px ${DISP}`; x.fillText(d.prize, 0, 14);
+  x.font = `24px ${DISP}`; x.fillText("JEETA", 0, 54);
+  x.restore();
+
+  // footer CTA
+  x.textAlign = "right";
+  x.fillStyle = "#f3efe6"; x.font = `600 34px ${BODY}`; x.fillText("Tum bhi detective ho?", W - 80, 1222);
+  x.fillStyle = "#f5b83d"; x.font = `40px ${DISP}`; x.fillText(`DM “${CONFIG.keyword}”`, W - 80, 1272);
+  x.fillStyle = "#9aa3c4"; x.font = `28px ${TYPE}`; x.fillText(`${CONFIG.handle}  ·  ${d.date}`, W - 80, 1312);
+  x.textAlign = "left";
+  return c;
+}
+
+function readForm(){
+  return { handle: $("fHandle").value.trim() || "@detective", caseNo: $("fCase").value.trim() || CONFIG.caseNo,
+    score: $("fScore").value.trim() || "5/5", title: $("fTitle").value.trim() || CONFIG.caseTitle,
+    line: $("fLine").value.trim() || "Case solved.", prize: $("fPrize").value.trim() || CONFIG.prize, date: $("fDate").value.trim() };
+}
+let lastCanvas = null;
+function updateCard(){ lastCanvas = drawCard(readForm()); $("cardImg").src = lastCanvas.toDataURL("image/png"); }
+
+let dlApi = null;
+async function saveCard(){
+  if (!lastCanvas) return;
+  const name = `detective-of-the-day-${readForm().caseNo}.png`;
+  if (dlApi) {
+    const blob = await new Promise(r => lastCanvas.toBlob(r, "image/png"));
+    try { await dlApi.save({ filename: name, data: blob }); } catch (e) { /* declined or unavailable: long-press hint covers it */ }
+    return;
+  }
+  try {
+    const a = document.createElement("a");
+    a.href = lastCanvas.toDataURL("image/png");
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) { /* frame may block downloads; long-press hint covers it */ }
+}
+
+function today(){ return new Date().toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" }); }
+
+async function init(){
+  applyConfig(); tick(); setInterval(tick, 1000); renderPast(); renderBoard();
+  $("fDate").value = today();
+  try { await Promise.all([document.fonts.load('80px "Bungee"'), document.fonts.load('30px "Special Elite"'), document.fonts.load('600 30px "Chakra Petch"')]); } catch(e) {}
+  updateCard();
+  $("todayCard").src = $("cardImg").src;
+  $("cardForm").addEventListener("input", updateCard);
+  $("cardForm").addEventListener("submit", e => e.preventDefault());
+  $("saveBtn").addEventListener("click", saveCard);
+  $("solveForm").addEventListener("submit", submitCase);
+  if (window.claude && typeof window.claude.use === "function") {
+    window.claude.use("downloads").then(d => { dlApi = d; }).catch(() => {});
+  }
+}
+init();
+</script>
+</body>
+</html>
